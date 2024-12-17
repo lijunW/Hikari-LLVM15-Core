@@ -30,6 +30,13 @@ static cl::opt<uint32_t> ObfTimes(
         "Choose how many time the FunctionWrapper pass loop on a CallSite"),
     cl::value_desc("Number of Times"), cl::init(2), cl::Optional);
 
+static cl::opt<std::string> WrapperFunctionName(
+    "fw_wrapper_name",
+    cl::desc("Specify the name to replace 'HikariFunctionWrapper'"),
+    cl::value_desc("Wrapper Function Name"),
+    cl::init("CompliteSwiftCurrentLib"),
+    cl::Optional);
+
 namespace llvm {
 struct FunctionWrapper : public ModulePass {
   static char ID;
@@ -98,9 +105,16 @@ struct FunctionWrapper : public ModulePass {
       types.emplace_back(CS->getArgOperand(i)->getType());
     FunctionType *ft =
         FunctionType::get(CS->getType(), ArrayRef<Type *>(types), false);
+
+    // 自定义"HikariFunctionWrapper"
+    std::string functionName = WrapperFunctionName; // 获取命令行参数值
     Function *func =
         Function::Create(ft, GlobalValue::LinkageTypes::InternalLinkage,
-                         "HikariFunctionWrapper", CS->getParent()->getModule());
+                     functionName, CS->getParent()->getModule());
+    // Function *func =
+    //     Function::Create(ft, GlobalValue::LinkageTypes::InternalLinkage,
+    //                      "HikariFunctionWrapper", CS->getParent()->getModule());
+
     func->setCallingConv(CS->getCallingConv());
     // Trolling was all fun and shit so old implementation forced this symbol to
     // exist in all objects
