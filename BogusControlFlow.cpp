@@ -318,10 +318,28 @@ struct BogusControlFlow : public FunctionPass {
     // and so on for the first block. We have to let the phi nodes in the first
     // part, because they actually are updated in the second part according to
     // them.
-    BasicBlock::iterator i1 = basicBlock->begin();
-    if (basicBlock->getFirstNonPHIOrDbgOrLifetime())
-      i1 = (BasicBlock::iterator)basicBlock->getFirstNonPHIOrDbgOrLifetime();
 
+    /** 原代码在新LLVM上编译不过：
+     * 
+     *  BasicBlock::iterator i1 = basicBlock->begin();
+     *  if (basicBlock->getFirstNonPHIOrDbgOrLifetime())
+     *    i1 = (BasicBlock::iterator)basicBlock->getFirstNonPHIOrDbgOrLifetime();
+     * 
+     * /Users/runner/work/llvm-project/llvm-project/llvm/lib/Transforms/Obfuscation/BogusControlFlow.cpp:322:9: 
+     * error: value of type 'InstListType::iterator' (aka 'ilist_iterator_w_bits<llvm::ilist_detail::node_options<llvm::Instruction, false, false, void, true, llvm::BasicBlock>, false, false>') is not contextually convertible to 'bool' 322 |     if (basicBlock->getFirstNonPHIOrDbgOrLifetime())
+      |         ^~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    */
+
+    // 修改后的代码片段
+    BasicBlock::iterator i1 = basicBlock->begin();
+    // 获取第一个非PHI/调试/Lifetime指令的迭代器
+    auto firstNonPHI = basicBlock->getFirstNonPHIOrDbgOrLifetime();
+    // 显式检查有效性
+    if (firstNonPHI != basicBlock->end()) {
+      i1 = firstNonPHI;
+    }
+
+    
     // https://github.com/eshard/obfuscator-llvm/commit/85c8719c86bcb4784f5a436e28f3496e91cd6292
     /* TODO: find a real fix or try with the probe-stack inline-asm when its
      * ready. See https://github.com/Rust-for-Linux/linux/issues/355. Sometimes
